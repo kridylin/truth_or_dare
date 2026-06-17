@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>心动之约 - 真心话大冒险</title>
+    <style>
+        :root {
+            --bg-color: #121214;
+            --card-truth: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            --card-dare: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
+            --text-main: #ffffff;
+            --text-sub: rgba(255, 255, 255, 0.6);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            padding: 24px 16px;
+            overflow: hidden;
+        }
+
+        /* 顶部计数器与重置 */
+        .header {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 8px;
+            font-size: 14px;
+            color: var(--text-sub);
+        }
+
+        .reset-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: var(--text-main);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .reset-btn:active {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(0.95);
+        }
+
+        /* 核心卡片容器 */
+        .card-container {
+            width: 100%;
+            max-width: 360px;
+            height: 380px;
+            perspective: 1000px;
+            margin: 20px 0;
+        }
+
+        .card {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border-radius: 24px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+        }
+
+        .card.flipped {
+            transform: rotateY(180deg);
+        }
+
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 24px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 32px;
+            text-align: center;
+        }
+
+        /* 卡片正面（未抽取状态） */
+        .card-front {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .card-front .logo {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.8;
+        }
+
+        .card-front .hint {
+            font-size: 16px;
+            color: var(--text-sub);
+            letter-spacing: 2px;
+        }
+
+        /* 卡片背面（展示题目状态） */
+        .card-back {
+            transform: rotateY(180deg);
+            background: var(--card-truth);
+        }
+
+        .card-back.dare-mode {
+            background: var(--card-dare);
+        }
+
+        .zone-tag {
+            position: absolute;
+            top: 24px;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 4px 14px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: 500;
+            letter-spacing: 1px;
+            backdrop-filter: blur(5px);
+        }
+
+        .question-text {
+            font-size: 22px;
+            line-height: 1.6;
+            font-weight: 600;
+            word-break: break-all;
+        }
+
+        /* 底部控制区域 */
+        .controls {
+            width: 100%;
+            max-width: 360px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .mode-buttons {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn {
+            flex: 1;
+            border: none;
+            padding: 16px;
+            border-radius: 16px;
+            font-size: 16px;
+            font-weight: 600;
+            color: white;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        .btn-truth {
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+        }
+
+        .btn-dare {
+            background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
+        }
+
+        .btn:active {
+            transform: scale(0.96);
+            opacity: 0.9;
+        }
+
+        .disabled {
+            background: #3a3a3c !important;
+            color: #8e8e93;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 顶部状态栏 -->
+    <div class="header">
+        <div id="pool-count">真心话: 50 | 大冒险: 50</div>
+        <button class="reset-btn" onclick="resetPools()">一键重置</button>
+    </div>
+
+    <!-- 卡片舞台 -->
+    <div class="card-container">
+        <div class="card" id="card">
+            <!-- 牌面未抽取 -->
+            <div class="card-face card-front">
+                <div class="logo">✨</div>
+                <div class="hint" id="front-hint">请选择下方模式抽取</div>
+            </div>
+            <!-- 牌面展示题目 -->
+            <div class="card-face card-back" id="card-back">
+                <div class="zone-tag" id="zone-tag">关系升温区</div>
+                <div class="question-text" id="question-text">如果你可以改变过去的一件事，那会是什么？</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 底部操作按钮 -->
+    <div class="controls">
+        <div class="mode-buttons">
+            <button class="btn btn-truth" id="btn-truth" onclick="drawCard('truth')">抽 真心话</button>
+            <button class="btn btn-dare" id="btn-dare" onclick="drawCard('dare')">抽 大冒险</button>
+        </div>
+    </div>
+
+    <script>
+        // 原始完整题库数据
+        const originalDatabase = {
+            truth: [
+                { zone: "初级安全区", text: "你最容易对什么样的人有好感？" },
+                { zone: "初级安全区", text: "你第一眼最看重异性的什么？" },
+                { zone: "初级安全区", text: "你谈恋爱会主动还是被动？" },
+                { zone: "初级安全区", text: "你会偷偷观察喜欢的人吗？" },
+                { zone: "初级安全区", text: "你最理想的约会是什么？" },
+                { zone: "初级安全区", text: "你会日久生情还是一见钟情？" },
+                { zone: "初级安全区", text: "你最加分的性格是什么？" },
+                { zone: "初级安全区", text: "你会因为颜值心动吗？" },
+                { zone: "初级安全区", text: "你恋爱里最讨厌什么？" },
+                { zone: "初级安全区", text: "你觉得自己好追吗？" },
+                { zone: "关系升温区", text: "你会偷偷吃醋吗？" },
+                { zone: "关系升温区", text: "你会反复看聊天记录吗？" },
+                { zone: "关系升温区", text: "你会故意等别人找你吗？" },
+                { zone: "关系升温区", text: "你最难忘的一次心动是什么？" },
+                { zone: "关系升温区", text: "你会口是心非吗？" },
+                { zone: "关系升温区", text: "你会因为细节突然喜欢一个人吗？" },
+                { zone: "关系升温区", text: "你最希望另一半怎么安慰你？" },
+                { zone: "关系升温区", text: "你吵架后会主动低头吗？" },
+                { zone: "关系升温区", text: "你最怕感情里什么？" },
+                { zone: "关系升温区", text: "你会偷偷测试别人爱不爱你吗？" },
+                { zone: "暧昧区", text: "你会主动制造偶遇吗？" },
+                { zone: "暧昧区", text: "你有没有暗恋过很久的人？" },
+                { zone: "暧昧区", text: "你觉得暧昧最上头的瞬间是什么？" },
+                { zone: "暧昧区", text: "你喜欢被直球还是慢热？" },
+                { zone: "暧昧区", text: "你觉得自己恋爱脑吗？" },
+                { zone: "暧昧区", text: "你会想很多然后不敢靠近吗？" },
+                { zone: "暧昧区", text: "你收到过最心动的话是什么？" },
+                { zone: "暧昧区", text: "你会因为一个眼神心动吗？" },
+                { zone: "暧昧区", text: "你喜欢粘人型还是独立型？" },
+                { zone: "暧昧区", text: "你最容易在哪种情况下沦陷？" },
+                { zone: "深层情绪区", text: "你觉得自己值得被爱吗？" },
+                { zone: "深层情绪区", text: "你有被人坚定选择过吗？" },
+                { zone: "深层情绪区", text: "你在感情里最缺什么？" },
+                { zone: "深层情绪区", text: "你会害怕进入亲密关系吗？" },
+                { zone: "深层情绪区", text: "你有没有因为喜欢一个人变得自卑？" },
+                { zone: "深层情绪区", text: "你最想被别人理解什么？" },
+                { zone: "深层情绪区", text: "你觉得自己真实的一面容易被看见吗？" },
+                { zone: "深层情绪区", text: "你会因为害怕失去而不敢开始吗？" },
+                { zone: "深层情绪区", text: "你现在更想恋爱还是更怕恋爱？" },
+                { zone: "深层情绪区", text: "你最孤独的时候是什么感觉？" },
+                { zone: "微心动区", text: "现场有没有你想进一步认识的人？" },
+                { zone: "微心动区", text: "你觉得谁最像理想型？" },
+                { zone: "微心动区", text: "你会对什么样的眼神心动？" },
+                { zone: "微心动区", text: "你更容易被温柔吸引还是被有趣吸引？" },
+                { zone: "微心动区", text: "你觉得恋爱里最戳你的细节是什么？" },
+                { zone: "微心动区", text: "你会偷偷记住别人说的话吗？" },
+                { zone: "微心动区", text: "你觉得自己适合长期关系吗？" },
+                { zone: "微心动区", text: "你会想象未来另一半的样子吗？" },
+                { zone: "微心动区", text: "你希望别人怎么喜欢你？" },
+                { zone: "微心动区", text: "如果今晚只能加一个人微信，你会选什么样的人？" }
+            ],
+            dare: [
+                { zone: "轻互动区", text: "和左边的人击掌并夸他一句" },
+                { zone: "轻互动区", text: "对右边的人说一句真诚的话" },
+                { zone: "轻互动区", text: "选择一个人对视10秒" },
+                { zone: "轻互动区", text: "和一个人合拍一张氛围感照片" },
+                { zone: "轻互动区", text: "学一个你觉得最可爱的表情" },
+                { zone: "轻互动区", text: "用三个词形容自己" },
+                { zone: "轻互动区", text: "找一个人和你背靠背坐30秒" },
+                { zone: "轻互动区", text: "给现场一个人起外号" },
+                { zone: "轻互动区", text: "模仿一下你恋爱时的状态" },
+                { zone: "轻互动区", text: "用一句话介绍自己的恋爱观" },
+                { zone: "升温互动区", text: "找一个人互相说第一印象" },
+                { zone: "升温互动区", text: "给一个人唱一句情歌" },
+                { zone: "升温互动区", text: "和一个人十指碰十秒" },
+                { zone: "升温互动区", text: "让一个人帮你整理头发" },
+                { zone: "升温互动区", text: "和一个人完成同步动作挑战" },
+                { zone: "升温互动区", text: "对一个人说一句会让人心动的话" },
+                { zone: "升温互动区", text: "给一个人拍一张你觉得最好看的照片" },
+                { zone: "升温互动区", text: "和一个人一起摆情侣pose" },
+                { zone: "升温互动区", text: "对一个人说：“我觉得你挺特别的”" },
+                { zone: "升温互动区", text: "和一个人一起录五秒视频" },
+                { zone: "暧昧区", text: "和一个人靠肩十秒" },
+                { zone: "暧昧区", text: "让一个人用三个词形容你" },
+                { zone: "暧昧区", text: "对一个人轻声说一句悄悄话" },
+                { zone: "暧昧区", text: "和一个人完成“假装初次约会”30秒" },
+                { zone: "暧昧区", text: "牵一个人的手绕营地走一圈" },
+                { zone: "暧昧区", text: "和一个人互相喂零食" },
+                { zone: "暧昧区", text: "和一个人共同完成自拍九连拍" },
+                { zone: "暧昧区", text: "模拟给喜欢的人发语音" },
+                { zone: "暧昧区", text: "和一个人进行“深情对视挑战”" },
+                { zone: "暧昧区", text: "让一个人选你身上最有魅力的地方" },
+                { zone: "情绪连接区", text: "对一个人认真说一句感谢" },
+                { zone: "情绪连接区", text: "分享一个别人不知道的小秘密" },
+                { zone: "情绪连接区", text: "讲一次让你印象很深的心动经历" },
+                { zone: "情绪连接区", text: "对一个人说一句鼓励的话" },
+                { zone: "情绪连接区", text: "给一个人一个专属称呼" },
+                { zone: "情绪连接区", text: "说出你最希望未来关系里的状态" },
+                { zone: "情绪连接区", text: "认真夸一个人的性格" },
+                { zone: "情绪连接区", text: "分享一次你觉得被治愈的瞬间" },
+                { zone: "情绪连接区", text: "和一个人完成“理想约会情景演绎”" },
+                { zone: "情绪连接区", text: "说一句你平时不太敢说的话" },
+                { zone: "微暧昧心动区", text: "从现场选一个你想深入认识的人聊一分钟" },
+                { zone: "微暧昧心动区", text: "和一个人互换一个小物件" },
+                { zone: "微暧昧心动区", text: "对一个人说：“如果早点认识你就好了”" },
+                { zone: "微暧昧心动区", text: "给一个人设计一个备注名" },
+                { zone: "微暧昧心动区", text: "和一个人拍“电影感对视照”" },
+                { zone: "微暧昧心动区", text: "用一句话撩现场一个人" },
+                { zone: "微暧昧心动区", text: "让一个人评价你适不适合恋爱" },
+                { zone: "微暧昧心动区", text: "闭眼让别人选择一个人和你碰拳" },
+                { zone: "微暧昧心动区", text: "给一个人发一句暧昧开场白（模拟）" },
+                { zone: "微暧昧心动区", text: "和一个人约定活动结束后单独聊十分钟" }
+            ]
+        };
+
+        // 运行时题库（用于不放回抽取）
+        let truthPool = [];
+        let darePool = [];
+        let isAnimating = false;
+
+        // 初始化/重置题库
+        function resetPools() {
+            truthPool = [...originalDatabase.truth];
+            darePool = [...originalDatabase.dare];
+            updateUI();
+            
+            // 重置卡片状态
+            const card = document.getElementById('card');
+            card.classList.remove('flipped');
+            document.getElementById('front-hint').innerText = "已重新洗牌，请选择模式";
+        }
+
+        // 更新界面数据
+        function updateUI() {
+            document.getElementById('pool-count').innerText = `真心话: ${truthPool.length} | 大冒险: ${darePool.length}`;
+            
+            // 根据余量更新按钮可用状态
+            document.getElementById('btn-truth').classList.toggle('disabled', truthPool.length === 0);
+            document.getElementById('btn-dare').classList.toggle('disabled', darePool.length === 0);
+        }
+
+        // 抽取卡片核心逻辑
+        function drawCard(type) {
+            if (isAnimating) return;
+            
+            let currentPool = type === 'truth' ? truthPool : darePool;
+            if (currentPool.length === 0) return;
+
+            isAnimating = true;
+            const card = document.getElementById('card');
+            const cardBack = document.getElementById('card-back');
+
+            // 1. 先切回正面（如果已经是翻开状态）
+            if (card.classList.contains('flipped')) {
+                card.classList.remove('flipped');
+                setTimeout(() => executeDraw(type, currentPool), 300);
+            } else {
+                executeDraw(type, currentPool);
+            }
+        }
+
+        // 执行随机抽取与动画
+        function executeDraw(type, currentPool) {
+            const card = document.getElementById('card');
+            const cardBack = document.getElementById('card-back');
+            
+            // 2. 随机不放回抽取
+            const randomIndex = Math.floor(Math.random() * currentPool.length);
+            const item = currentPool.splice(randomIndex, 1)[0]; // 移出数组
+
+            // 3. 配置背面样式与内容
+            if (type === 'truth') {
+                cardBack.classList.remove('dare-mode');
+            } else {
+                cardBack.classList.add('dare-mode');
+            }
+            
+            document.getElementById('zone-tag').innerText = item.zone;
+            document.getElementById('question-text').innerText = item.text;
+
+            // 4. 触发翻牌动画
+            setTimeout(() => {
+                card.classList.add('flipped');
+                updateUI();
+                isAnimating = false;
+            }, 100);
+        }
+
+        // 首次进入自动初始化
+        resetPools();
+    </script>
+</body>
+</html>

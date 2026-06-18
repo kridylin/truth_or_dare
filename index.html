@@ -6,11 +6,12 @@
     <title>心动之约 - 真心话大冒险</title>
     <style>
         :root {
-            --bg-color: #121214;
-            --card-truth: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
-            --card-dare: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
-            --text-main: #ffffff;
-            --text-sub: rgba(255, 255, 255, 0.6);
+            --bg-color: #f7f8fa; /* 极简浅灰背景 */
+            --card-truth: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%); /* 治愈暖蓝 */
+            --card-dare: linear-gradient(135deg, #ff7675 0%, #d63031 100%);  /* 浪漫珊瑚红 */
+            --text-main: #2d3436; /* 深灰主文字 */
+            --text-sub: #636e72;  /* 辅助文字 */
+            --card-bg-front: #ffffff; /* 纯白卡片正面 */
         }
 
         * {
@@ -33,7 +34,7 @@
             overflow: hidden;
         }
 
-        /* 顶部计数器与重置 */
+        /* 顶部状态栏 */
         .header {
             width: 100%;
             display: flex;
@@ -44,19 +45,38 @@
             color: var(--text-sub);
         }
 
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .edit-icon {
+            font-size: 16px;
+            cursor: pointer;
+            padding: 4px;
+            opacity: 0.7;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 8px;
+        }
+
         .reset-btn {
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: #ffffff;
+            border: 1px solid #dfe6e9;
             color: var(--text-main);
             padding: 6px 14px;
             border-radius: 20px;
             font-size: 13px;
             cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
             transition: all 0.2s;
         }
 
         .reset-btn:active {
-            background: rgba(255, 255, 255, 0.2);
+            background: #f1f2f6;
             transform: scale(0.95);
         }
 
@@ -76,7 +96,7 @@
             transform-style: preserve-3d;
             transition: transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             border-radius: 24px;
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
         }
 
         .card.flipped {
@@ -97,29 +117,30 @@
             text-align: center;
         }
 
-        /* 卡片正面（未抽取状态） */
+        /* 纯白质感卡片正面 */
         .card-front {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
+            background: var(--card-bg-front);
+            border: 1px solid rgba(0, 0, 0, 0.05);
         }
 
         .card-front .logo {
             font-size: 48px;
             margin-bottom: 16px;
-            opacity: 0.8;
+            opacity: 0.9;
         }
 
         .card-front .hint {
             font-size: 16px;
             color: var(--text-sub);
             letter-spacing: 2px;
+            font-weight: 500;
         }
 
-        /* 卡片背面（展示题目状态） */
+        /* 卡片背面（保留高饱和度色彩，突出开盲盒时的视觉冲击） */
         .card-back {
             transform: rotateY(180deg);
             background: var(--card-truth);
+            color: #ffffff; /* 确保暗色背景下文字为白色 */
         }
 
         .card-back.dare-mode {
@@ -129,13 +150,14 @@
         .zone-tag {
             position: absolute;
             top: 24px;
-            background: rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.25);
             padding: 4px 14px;
             border-radius: 15px;
             font-size: 12px;
             font-weight: 500;
             letter-spacing: 1px;
             backdrop-filter: blur(5px);
+            color: #ffffff;
         }
 
         .question-text {
@@ -169,15 +191,15 @@
             color: white;
             cursor: pointer;
             transition: all 0.2s ease;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         }
 
         .btn-truth {
-            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
         }
 
         .btn-dare {
-            background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
+            background: linear-gradient(135deg, #ff7675 0%, #d63031 100%);
         }
 
         .btn:active {
@@ -186,25 +208,144 @@
         }
 
         .disabled {
-            background: #3a3a3c !important;
-            color: #8e8e93;
+            background: #dfe6e9 !important;
+            color: #b2bec3;
             cursor: not-allowed;
             pointer-events: none;
+            box-shadow: none;
         }
+
+        /* 题库编辑弹窗（明亮色系面板） */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+            padding: 20px;
+            flex-direction: column;
+            color: var(--text-main);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .tab {
+            padding: 6px 16px;
+            background: #f1f2f6;
+            border-radius: 12px;
+            font-size: 14px;
+            color: var(--text-sub);
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .tab.active {
+            background: #0984e3;
+            color: white;
+        }
+
+        .editor-container {
+            flex: 1;
+            overflow-y: auto;
+            background: #f8f9fa;
+            border: 1px solid #edf2f7;
+            border-radius: 16px;
+            padding: 12px;
+            margin-bottom: 16px;
+        }
+
+        .edit-item {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+            align-items: center;
+        }
+
+        .edit-zone {
+            width: 90px;
+            background: #ffffff;
+            border: 1px solid #dfe6e9;
+            color: var(--text-main);
+            padding: 8px 6px;
+            border-radius: 8px;
+            font-size: 12px;
+        }
+
+        .edit-text {
+            flex: 1;
+            background: #ffffff;
+            border: 1px solid #dfe6e9;
+            color: var(--text-main);
+            padding: 8px 6px;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .del-btn {
+            background: #ff7675;
+            border: none;
+            color: white;
+            padding: 8px 10px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .modal-footer {
+            display: flex;
+            gap: 12px;
+        }
+
+        .footer-btn {
+            flex: 1;
+            padding: 12px;
+            border-radius: 12px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .save-btn { background: #0984e3; color: white; }
+        .cancel-btn { background: #edf2f7; color: var(--text-sub); }
+        .add-btn { background: #ffffff; color: #0984e3; border: 1px dashed #0984e3; margin-top: 5px; width: 100%; padding: 10px; border-radius: 8px; font-weight: 500;}
     </style>
 </head>
 <body>
 
     <!-- 顶部状态栏 -->
     <div class="header">
-        <div id="pool-count">真心话: 50 | 大冒险: 50</div>
-        <button class="reset-btn" onclick="resetPools()">一键重置</button>
+        <div class="header-left">
+            <span id="pool-count">真心话: 50 | 大冒险: 50</span>
+            <span class="edit-icon" onclick="openEditor()">⚙️</span>
+        </div>
+        <div class="btn-group">
+            <button class="reset-btn" onclick="resetPools()">洗牌(清空历史)</button>
+        </div>
     </div>
 
     <!-- 卡片舞台 -->
     <div class="card-container">
         <div class="card" id="card">
-            <!-- 牌面未抽取 -->
+            <!-- 牌面未抽取（纯白极简） -->
             <div class="card-face card-front">
                 <div class="logo">✨</div>
                 <div class="hint" id="front-hint">请选择下方模式抽取</div>
@@ -225,9 +366,29 @@
         </div>
     </div>
 
+    <!-- 题库管理面板（默认隐藏） -->
+    <div class="modal" id="editor-modal">
+        <div class="modal-header">
+            <div class="modal-title">自定义题库配置</div>
+            <button class="reset-btn" style="background: #ff7675; color: white; border: none;" onclick="restoreDefaultDatabase()">恢复初始题库</button>
+        </div>
+        <div class="tabs">
+            <div class="tab active" id="tab-truth" onclick="switchTab('truth')">真心话配置</div>
+            <div class="tab" id="tab-dare" onclick="switchTab('dare')">大冒险配置</div>
+        </div>
+        <div class="editor-container" id="editor-list">
+            <!-- 动态生成列表 -->
+        </div>
+        <button class="add-btn" onclick="addNewItem()">+ 添加新题目</button>
+        <div class="modal-footer" style="margin-top: 12px;">
+            <button class="footer-btn cancel-btn" onclick="closeEditor()">取消</button>
+            <button class="footer-btn save-btn" onclick="saveDatabase()">保存并应用</button>
+        </div>
+    </div>
+
     <script>
-        // 原始完整题库数据
-        const originalDatabase = {
+        // 内置初始默认题库
+        const defaultDatabase = {
             truth: [
                 { zone: "初级安全区", text: "你最容易对什么样的人有好感？" },
                 { zone: "初级安全区", text: "你第一眼最看重异性的什么？" },
@@ -334,33 +495,59 @@
             ]
         };
 
-        // 运行时题库（用于不放回抽取）
-        let truthPool = [];
-        let darePool = [];
+        // 全局核心数据状态
+        let customDatabase = {}; 
+        let truthPool = [];      
+        let darePool = [];       
         let isAnimating = false;
+        let currentEditTab = 'truth'; 
+        let tempEditList = [];   
 
-        // 初始化/重置题库
-        function resetPools() {
-            truthPool = [...originalDatabase.truth];
-            darePool = [...originalDatabase.dare];
+        function initGameData() {
+            const savedDB = localStorage.getItem('tod_custom_db');
+            if (savedDB) {
+                customDatabase = JSON.parse(savedDB);
+            } else {
+                customDatabase = JSON.parse(JSON.stringify(defaultDatabase));
+                localStorage.setItem('tod_custom_db', JSON.stringify(customDatabase));
+            }
+
+            const savedTruthPool = localStorage.getItem('tod_pool_truth');
+            const savedDarePool = localStorage.getItem('tod_pool_dare');
+
+            if (savedTruthPool !== null && savedDarePool !== null) {
+                truthPool = JSON.parse(savedTruthPool);
+                darePool = JSON.parse(savedDarePool);
+            } else {
+                truthPool = [...customDatabase.truth];
+                darePool = [...customDatabase.dare];
+                saveCurrentPools();
+            }
             updateUI();
-            
-            // 重置卡片状态
-            const card = document.getElementById('card');
-            card.classList.remove('flipped');
-            document.getElementById('front-hint').innerText = "已重新洗牌，请选择模式";
         }
 
-        // 更新界面数据
-        function updateUI() {
-            document.getElementById('pool-count').innerText = `真心话: ${truthPool.length} | 大冒险: ${darePool.length}`;
+        function saveCurrentPools() {
+            localStorage.setItem('tod_pool_truth', JSON.stringify(truthPool));
+            localStorage.setItem('tod_pool_dare', JSON.stringify(darePool));
+        }
+
+        function resetPools() {
+            truthPool = [...customDatabase.truth];
+            darePool = [...customDatabase.dare];
+            saveCurrentPools();
+            updateUI();
             
-            // 根据余量更新按钮可用状态
+            const card = document.getElementById('card');
+            card.classList.remove('flipped');
+            document.getElementById('front-hint').innerText = "已重新洗牌，开启新一轮！";
+        }
+
+        function updateUI() {
+            document.getElementById('pool-count').innerText = `真心话: ${truthPool.length}/${customDatabase.truth.length} | 大冒险: ${darePool.length}/${customDatabase.dare.length}`;
             document.getElementById('btn-truth').classList.toggle('disabled', truthPool.length === 0);
             document.getElementById('btn-dare').classList.toggle('disabled', darePool.length === 0);
         }
 
-        // 抽取卡片核心逻辑
         function drawCard(type) {
             if (isAnimating) return;
             
@@ -369,9 +556,7 @@
 
             isAnimating = true;
             const card = document.getElementById('card');
-            const cardBack = document.getElementById('card-back');
 
-            // 1. 先切回正面（如果已经是翻开状态）
             if (card.classList.contains('flipped')) {
                 card.classList.remove('flipped');
                 setTimeout(() => executeDraw(type, currentPool), 300);
@@ -380,26 +565,24 @@
             }
         }
 
-        // 执行随机抽取与动画
         function executeDraw(type, currentPool) {
             const card = document.getElementById('card');
             const cardBack = document.getElementById('card-back');
             
-            // 2. 随机不放回抽取
             const randomIndex = Math.floor(Math.random() * currentPool.length);
-            const item = currentPool.splice(randomIndex, 1)[0]; // 移出数组
+            const item = currentPool.splice(randomIndex, 1)[0]; 
 
-            // 3. 配置背面样式与内容
+            saveCurrentPools();
+
             if (type === 'truth') {
                 cardBack.classList.remove('dare-mode');
             } else {
                 cardBack.classList.add('dare-mode');
             }
             
-            document.getElementById('zone-tag').innerText = item.zone;
+            document.getElementById('zone-tag').innerText = item.zone || "自定义区";
             document.getElementById('question-text').innerText = item.text;
 
-            // 4. 触发翻牌动画
             setTimeout(() => {
                 card.classList.add('flipped');
                 updateUI();
@@ -407,8 +590,77 @@
             }, 100);
         }
 
-        // 首次进入自动初始化
-        resetPools();
+        /* 题库后台配置功能 */
+        function openEditor() {
+            document.getElementById('editor-modal').style.display = 'flex';
+            currentEditTab = 'truth';
+            switchTab('truth');
+        }
+
+        function closeEditor() {
+            document.getElementById('editor-modal').style.display = 'none';
+        }
+
+        function switchTab(type) {
+            currentEditTab = type;
+            document.getElementById('tab-truth').classList.toggle('active', type === 'truth');
+            document.getElementById('tab-dare').classList.toggle('active', type === 'dare');
+            
+            tempEditList = JSON.parse(JSON.stringify(customDatabase[type]));
+            renderEditorList();
+        }
+
+        function renderEditorList() {
+            const container = document.getElementById('editor-list');
+            container.innerHTML = '';
+            
+            tempEditList.forEach((item, index) => {
+                const div = document.createElement('div');
+                div.className = 'edit-item';
+                div.innerHTML = `
+                    <input type="text" class="edit-zone" placeholder="分组" value="${item.zone}" onchange="updateTempItem(${index}, 'zone', this.value)">
+                    <input type="text" class="edit-text" placeholder="题目内容" value="${item.text}" onchange="updateTempItem(${index}, 'text', this.value)">
+                    <button class="del-btn" onclick="deleteTempItem(${index})">删</button>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function updateTempItem(index, key, value) {
+            tempEditList[index][key] = value;
+        }
+
+        function deleteTempItem(index) {
+            tempEditList.splice(index, 1);
+            renderEditorList();
+        }
+
+        function addNewItem() {
+            tempEditList.push({ zone: "自定义区", text: "新题目" });
+            renderEditorList();
+            const container = document.getElementById('editor-list');
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function saveDatabase() {
+            customDatabase[currentEditTab] = tempEditList.filter(item => item.text.trim() !== "");
+            localStorage.setItem('tod_custom_db', JSON.stringify(customDatabase));
+            
+            alert("保存成功！题库已更新并自动洗牌。");
+            closeEditor();
+            resetPools();
+        }
+
+        function restoreDefaultDatabase() {
+            if(confirm("确定要放弃所有修改，恢复到最开始的100道经典题库吗？")) {
+                customDatabase = JSON.parse(JSON.stringify(defaultDatabase));
+                localStorage.setItem('tod_custom_db', JSON.stringify(customDatabase));
+                closeEditor();
+                resetPools();
+            }
+        }
+
+        initGameData();
     </script>
 </body>
 </html>
